@@ -1,35 +1,44 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { StyleSheet,Image, Text, View, ImageSourcePropType } from 'react-native'
+import React from 'react'
+import { Tabs } from 'expo-router'
+import { images } from '@/constants/images'
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+const Icon = ({src}:any)=>(<>
+    <Image source={src} style={styles.icon} />
+</>)
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
+const _layout = () => {
   return (
     <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
+    screenOptions={{
+        headerShown:false,
+        tabBarActiveTintColor:"black",
+        tabBarInactiveTintColor:"grey",
+        tabBarStyle:{
+            backgroundColor:"white"
+        },
+        tabBarLabelStyle:{
+            fontSize:14
+        }
+    }}
+    >
+        <Tabs.Screen name='Chats' options={{title:"Chats", tabBarIcon:(props)=> (<>
+        <Icon src={images.Home}/>
+        </>)}}/>
+        <Tabs.Screen name='Profile' options={{title:"Profile", tabBarIcon:(props)=> (<>
+        <Icon src={images.Friends}/>
+        </>),}}/>
     </Tabs>
-  );
+  )
 }
+
+export default _layout
+
+const styles = StyleSheet.create({
+    icon:{
+    width: 24,
+    height: 24,
+    marginTop: 10,
+    tintColor: 'black',
+  },
+})
