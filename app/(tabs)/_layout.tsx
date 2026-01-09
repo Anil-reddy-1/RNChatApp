@@ -22,7 +22,7 @@ const _layout = () => {
         }
     }}
     >
-        <Tabs.Screen name='Chats' options={{title:"Chats", tabBarIcon:(props)=> (<>
+        <Tabs.Screen name='chat' options={{title:"Chats", tabBarIcon:(props)=> (<>
         <Icon src={images.Home}/>
         </>)}}/>
         <Tabs.Screen name='Profile' options={{title:"Profile", tabBarIcon:(props)=> (<>
