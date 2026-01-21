@@ -11,18 +11,17 @@ type prop={
     LastMessage:string,
     chatId:string,
 }
-
+  
 
 const PersonCard = (props:prop) => {
     const router = useRouter();
     const personContext = usePerson();
 
     const handleRoute=()=>{
-        personContext.setPerson({
-
-        });
+        personContext.setPerson(props)
         router.push(`/chat/${props.id}` as any)
     }
+    
   return (
     <View style={styles.Container}  >
         <View style={styles.ProfileImgCont}>

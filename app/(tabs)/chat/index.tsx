@@ -5,8 +5,13 @@ import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
+import { useAuth } from '@/contexts/AuthContext'
+import Login from '@/components/login'
 
 const index = () => {
+  const Auth = useAuth();
+  
+  if(!Auth?.isAuthenticated) return(<Login/>)
   return (
     <SafeAreaProvider style={{backgroundColor:"rgba(247, 224, 180, 0.4)"}}>
         <SafeAreaView>
