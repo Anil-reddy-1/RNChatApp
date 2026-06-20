@@ -129,7 +129,22 @@ const ChatScreen = () => {
 
       socket.on('message', (msg: Message) => {
         if (mounted) {
-          setMessages(prev => [...prev, msg]);
+          setMessages(prev => {
+            // Find an optimistic message that matches this real message
+            const optIndex = prev.findIndex(p => p.sender === msg.sender && p.msg === msg.msg && p._id.startsWith('opt-'));
+            
+            if (optIndex !== -1) {
+              // Replace optimistic message with the real one from server
+              const next = [...prev];
+              next[optIndex] = msg;
+              return next;
+            }
+            
+            // Fallback: prevent duplicates if we already have this exact ID
+            if (prev.some(p => p._id === msg._id)) return prev;
+
+            return [...prev, msg];
+          });
         }
       });
 
