@@ -12,8 +12,10 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { friendsApi, FriendRequest } from '@/api/api';
 import { Colors, FontSize, FontWeight, Radius, Spacing, Shadows } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -29,8 +31,37 @@ const ProfileAvatar: React.FC<{ name?: string; size?: number }> = ({ name = '?',
 // ─── Header ───────────────────────────────────────────────────
 const Header = () => {
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [requests, setRequests] = useState<FriendRequest[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(true);
+
   const Auth = useAuth();
   const userName = Auth?.user?.name ?? '';
+
+  React.useEffect(() => {
+    const loadRequests = async () => {
+      try {
+        const { data } = await friendsApi.getRequests();
+        setRequests(data);
+      } catch { /* ignore */ }
+      finally { setRequestsLoading(false); }
+    };
+    loadRequests();
+  }, []);
+
+  const handleAccept = async (friendId: string) => {
+    try {
+      await friendsApi.accept(friendId);
+      setRequests(prev => prev.filter(r => r._id !== friendId));
+    } catch { /* ignore */ }
+  };
+
+  const handleReject = async (friendId: string) => {
+    try {
+      await friendsApi.reject(friendId);
+      setRequests(prev => prev.filter(r => r._id !== friendId));
+    } catch { /* ignore */ }
+  };
 
   return (
     <>
@@ -42,14 +73,29 @@ const Header = () => {
           <Text style={styles.wordmarkText}>Chats</Text>
         </View>
 
-        {/* Right: Avatar button */}
-        <TouchableOpacity
-          style={styles.avatarBtn}
-          onPress={() => setProfileOpen(true)}
-          activeOpacity={0.75}
-        >
-          <ProfileAvatar name={userName} size={38} />
-        </TouchableOpacity>
+        {/* Right: Notifications & Avatar */}
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.bellBtn}
+            onPress={() => setNotificationsOpen(true)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="notifications-outline" size={24} color={Colors.textPrimary} />
+            {requests.length > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{requests.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.avatarBtn}
+            onPress={() => setProfileOpen(true)}
+            activeOpacity={0.75}
+          >
+            <ProfileAvatar name={userName} size={38} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* ── Profile Modal ─────────────────────────── */}
@@ -122,6 +168,59 @@ const Header = () => {
           </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* ── Notifications Modal ───────────────────────── */}
+      <Modal
+        visible={notificationsOpen}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setNotificationsOpen(false)}
+      >
+        <View style={styles.modalRoot}>
+          {/* Handle bar */}
+          <View style={[styles.handleBar, { marginTop: Spacing.xl }]} />
+
+          <View style={styles.notificationsHeader}>
+            <Text style={styles.notificationsTitle}>Notifications</Text>
+            <TouchableOpacity onPress={() => setNotificationsOpen(false)}>
+              <Ionicons name="close-circle-outline" size={28} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          {requestsLoading ? (
+            <ActivityIndicator style={{ marginTop: Spacing.xl }} color={Colors.accent} />
+          ) : requests.length === 0 ? (
+            <View style={styles.emptyNotifications}>
+              <Ionicons name="notifications-off-outline" size={48} color={Colors.textMuted} />
+              <Text style={styles.emptyText}>No new notifications</Text>
+            </View>
+          ) : (
+            <ScrollView contentContainerStyle={{ padding: Spacing.xl }}>
+              <Text style={styles.sectionTitle}>Friend Requests</Text>
+              <View style={styles.settingsCard}>
+                {requests.map((r, i) => (
+                  <View key={r._id}>
+                    <View style={styles.requestRow}>
+                      <ProfileAvatar name={r.name} size={42} />
+                      <Text style={styles.requestName} numberOfLines={1}>{r.name}</Text>
+                      <View style={styles.reqActions}>
+                        <TouchableOpacity style={styles.rejectBtn} onPress={() => handleReject(r._id)}>
+                          <Ionicons name="close" size={14} color={Colors.error} />
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.acceptBtn} onPress={() => handleAccept(r._id)}>
+                          <Ionicons name="checkmark" size={14} color={Colors.textInverse} />
+                          <Text style={styles.acceptText}>Accept</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    {i < requests.length - 1 && <View style={styles.rowDivider} />}
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          )}
+        </View>
+      </Modal>
     </>
   );
 };
@@ -165,6 +264,34 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.bold,
     color: Colors.textPrimary,
     letterSpacing: 0.2,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  bellBtn: {
+    padding: Spacing.xs,
+    position: 'relative',
+    marginRight: Spacing.xs,
+  },
+  badge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    backgroundColor: Colors.error,
+    borderRadius: Radius.full,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.bgPrimary,
+  },
+  badgeText: {
+    color: Colors.textInverse,
+    fontSize: 9,
+    fontWeight: FontWeight.bold,
   },
   avatarBtn: {
     padding: Spacing.xs,
@@ -312,5 +439,75 @@ const styles = StyleSheet.create({
     fontSize: FontSize.base,
     fontWeight: FontWeight.semibold,
     color: Colors.error,
+  },
+
+  // ── Notifications ──────────────────────────
+  notificationsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+  },
+  notificationsTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.bold,
+    color: Colors.textPrimary,
+  },
+  emptyNotifications: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+    paddingBottom: 100,
+  },
+  emptyText: {
+    fontSize: FontSize.base,
+    color: Colors.textSecondary,
+  },
+  requestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
+  },
+  requestName: {
+    flex: 1,
+    fontSize: FontSize.base,
+    fontWeight: FontWeight.medium,
+    color: Colors.textPrimary,
+  },
+  reqActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    alignItems: 'center',
+  },
+  rejectBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,94,126,0.4)',
+    backgroundColor: 'rgba(255,94,126,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  acceptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    paddingVertical: Spacing.xs + 1,
+    paddingHorizontal: Spacing.md,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.accent,
+    ...Shadows.accent,
+  },
+  acceptText: {
+    fontSize: FontSize.xs,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textInverse,
   },
 });
