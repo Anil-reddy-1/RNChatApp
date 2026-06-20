@@ -11,6 +11,7 @@ import {
   SectionList,
   Alert,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
@@ -82,15 +83,28 @@ const ProfileScreen = () => {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Load friend requests ──────────────────
-  const loadRequests = useCallback(async () => {
-    try {
-      const { data } = await friendsApi.getRequests();
-      setRequests(data);
-    } catch { /* ignore */ }
-    finally { setRequestsLoading(false); }
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const fetchRequests = async () => {
+        try {
+          const { data } = await friendsApi.getRequests();
+          if (isActive) {
+            setRequests(Array.isArray(data) ? data : []);
+          }
+        } catch (err: any) {
+          console.error("Profile requests error:", err?.response?.data || err.message);
+        } finally {
+          if (isActive) setRequestsLoading(false);
+        }
+      };
+      fetchRequests();
 
-  useEffect(() => { loadRequests(); }, [loadRequests]);
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
 
   // ── Debounced search ──────────────────────
   useEffect(() => {

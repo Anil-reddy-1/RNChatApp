@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { friendsApi, FriendRequest } from '@/api/api';
 import { Colors, FontSize, FontWeight, Radius, Spacing, Shadows } from '@/constants/theme';
@@ -38,16 +39,22 @@ const Header = () => {
   const Auth = useAuth();
   const userName = Auth?.user?.name ?? '';
 
-  React.useEffect(() => {
-    const loadRequests = async () => {
-      try {
-        const { data } = await friendsApi.getRequests();
-        setRequests(data);
-      } catch { /* ignore */ }
-      finally { setRequestsLoading(false); }
-    };
-    loadRequests();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadRequests = async () => {
+        try {
+          const { data } = await friendsApi.getRequests();
+          console.log("Friend requests loaded:", data);
+          setRequests(Array.isArray(data) ? data : []);
+        } catch (err: any) {
+          console.error("Error loading requests:", err?.response?.data || err.message);
+        } finally {
+          setRequestsLoading(false);
+        }
+      };
+      loadRequests();
+    }, [])
+  );
 
   const handleAccept = async (friendId: string) => {
     try {
